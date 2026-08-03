@@ -1,0 +1,8 @@
+# Obligatorias para funcionar
+requests>=2.28.0
+
+# Opcionales para mejor visualización
+termcolor>=2.1.0
+
+# Solo si usas funciones de pwn (context, log, etc.)
+pwntools>=4.10.0
