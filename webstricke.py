@@ -10,7 +10,7 @@ import os
 from urllib.parse import urljoin, urlparse
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from modules.basic_request import BasicRequestModule
-
+from modules.directory_buster import DirectoryBusterModule
 
 # Control_C Function
 def def_handler(sig, frame):
@@ -22,7 +22,7 @@ signal.signal(signal.SIGINT, def_handler)
 
 class WebStrike:
 
-    def __init__(self, url, user_agent, type_attack, quiet, method, output=None, format='json'):
+    def __init__(self, url, user_agent, type_attack, quiet, method, output=None, format='json', threads=10):
         
         self.url = url
         if user_agent:
@@ -38,6 +38,7 @@ class WebStrike:
 
         self.output = output    
         self.format = format
+        self.threads = threads
 
         if not quiet:
             self.banner()
@@ -84,7 +85,7 @@ class WebStrike:
     def checkstatus(self):
 
         try:
-            r = self.session.request(method=self.method, url=self.url, timeout=3)
+            r = self.session.request(method=self.method, url=self.url, timeout=10)
             r.raise_for_status()
             if r.status_code == 200 or r.status_code == 302:
                 return r.status_code
@@ -96,13 +97,18 @@ class WebStrike:
         except requests.exceptions.HTTPError as err:
            print(f"Hemos tenido un error -> %s" % err.args[0])
            sys.exit(1)
+        except requests.exceptions.ReadTimeout:
+            print(f"\n[!] Timeout: El servidor no responde en {self.timeout} segundos")
+            print("[!] Prueba a aumentar el timeout o verifica que el servidor está activo")
+            sys.exit(1)
 
 
     def load_module(self):
 
-        ta_whitelist = ['Basic', 'SQLi', 'LFI', 'Regex', 'Match']
+        ta_whitelist = ['Basic', 'SQLi', 'LFI', 'Regex', 'Match', 'DirBuster']
         module_mapping= {
-            'Basic': BasicRequestModule
+            'Basic': BasicRequestModule,
+            'DirBuster': DirectoryBusterModule
         }
 
         if self.type_attack not in ta_whitelist:
@@ -193,7 +199,12 @@ class WebStrike:
         print(f"------------------------------------------------")
         module_class = self.load_module()
         if module_class:
-            module_instance =module_class(target_url=self.url, method=self.method, session=self.session)
+            if self.type_attack == 'DirBuster':
+                threads = getattr(self, 'threads', 10)
+                module_instance =module_class(target_url=self.url, method=self.method, session=self.session, threads=threads)
+
+            else:
+                module_instance =module_class(target_url=self.url, method=self.method, session=self.session)
         
         if hasattr(module_instance, 'results'):
             self.scan_results = module_instance.results
@@ -209,11 +220,11 @@ def main():
     parser.add_argument('-m', '--method', help="Method of the Requests (GET, POST, PUT...)")
     parser.add_argument('-o', '--output', help="Archivo de salida, sorporta(txt, json)")
     parser.add_argument('-f', '--format', choices=['json','txt'], default='json', help='Formato de salida (por defecto JSON)')
-
+    parser.add_argument('-T', '--threads', type=int, default=10, help="Número de threads (para Dirbuster)")
 
     args = parser.parse_args()
 
-    webstricke = WebStrike(args.url, args.user_agent, args.type_attack, args.quiet, args.method, args.output, args.format )
+    webstricke = WebStrike(args.url, args.user_agent, args.type_attack, args.quiet, args.method, args.output, args.format, args.threads)
 
 
 if __name__ == '__main__':
