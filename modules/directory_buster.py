@@ -13,7 +13,7 @@ class DirectoryBusterModule:
         self.extensions = extensions or ['', '.php', '.html', '.txt', '.bak', '.old', '.backup', '.zip', '.tar', '.gz', '.log', '.tmp', '.swp']
 
         # Wordlist por defecto
-        self.wordlist = wordlist or [
+        self.wordlist = self.load_wordlist_from_file(wordlist) or [
             'admin', 'login', 'wp-admin', 'administrator', 'phpmyadmin',
             'backup', 'uploads', 'images', 'css', 'js', 'api', 'test',
             'config', 'include', 'tmp', 'cgi-bin', 'secret', 'hidden',
@@ -128,8 +128,8 @@ class DirectoryBusterModule:
 
                 # 200 pero contenido 404
                 if response.status_code == 200:
-                    for pattenr in error_patterns:
-                        if pattenr in content:
+                    for pattern in error_patterns:
+                        if pattern in content:
                             return None
                         
                 # Determinar tipo

@@ -22,7 +22,7 @@ signal.signal(signal.SIGINT, def_handler)
 
 class WebStrike:
 
-    def __init__(self, url, user_agent, type_attack, quiet, method, output=None, format='json', threads=10):
+    def __init__(self, url, user_agent, type_attack, quiet, method, output=None, format='json', threads=10, wordlist=None):
         
         self.url = url
         if user_agent:
@@ -39,6 +39,7 @@ class WebStrike:
         self.output = output    
         self.format = format
         self.threads = threads
+        self.wordlist = wordlist
 
         if not quiet:
             self.banner()
@@ -98,7 +99,7 @@ class WebStrike:
            print(f"Hemos tenido un error -> %s" % err.args[0])
            sys.exit(1)
         except requests.exceptions.ReadTimeout:
-            print(f"\n[!] Timeout: El servidor no responde en {self.timeout} segundos")
+            print(f"\n[!] Timeout: El servidor no responde en 10 segundos")
             print("[!] Prueba a aumentar el timeout o verifica que el servidor está activo")
             sys.exit(1)
 
@@ -132,7 +133,7 @@ class WebStrike:
             report_data = {
              "target": self.url,
              "method": self.method,
-             "module": self.method,
+             "module": module_name,
              "timestamp": datetime.now().isoformat(),
              "results": results   
             }
@@ -201,7 +202,7 @@ class WebStrike:
         if module_class:
             if self.type_attack == 'DirBuster':
                 threads = getattr(self, 'threads', 10)
-                module_instance =module_class(target_url=self.url, method=self.method, session=self.session, threads=threads)
+                module_instance =module_class(target_url=self.url, method=self.method, session=self.session, threads=threads, wordlist=self.wordlist)
 
             else:
                 module_instance =module_class(target_url=self.url, method=self.method, session=self.session)
@@ -221,10 +222,11 @@ def main():
     parser.add_argument('-o', '--output', help="Archivo de salida, sorporta(txt, json)")
     parser.add_argument('-f', '--format', choices=['json','txt'], default='json', help='Formato de salida (por defecto JSON)')
     parser.add_argument('-T', '--threads', type=int, default=10, help="Número de threads (para Dirbuster)")
+    parser.add_argument('-w', '--wordlist', help="Wordlist personalizado (Para DirBuster)")
 
     args = parser.parse_args()
 
-    webstricke = WebStrike(args.url, args.user_agent, args.type_attack, args.quiet, args.method, args.output, args.format, args.threads)
+    webstricke = WebStrike(args.url, args.user_agent, args.type_attack, args.quiet, args.method, args.output, args.format, args.threads, args.wordlist)
 
 
 if __name__ == '__main__':
